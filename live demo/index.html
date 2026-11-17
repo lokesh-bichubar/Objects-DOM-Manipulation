@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Objects & DOM Manipulation — Live Demo</title>
+<style>
+  :root{
+    --bg:#FBF3E4; --paper:#FFFFFF; --ink:#141414; --blue:#0037FF;
+    --yellow:#FFD029; --gray:#6E6A5E; --ok:#0B7A2E;
+    --shadow:8px 8px 0 var(--ink);
+    --shadow-sm:5px 5px 0 var(--ink);
+    --mono:'Courier New',Courier,monospace;
+    --display:'Arial Black','Helvetica Neue',Arial,sans-serif;
+    --body:Arial,'Helvetica Neue',sans-serif;
+  }
+  body.dark{
+    --bg:#16161C; --paper:#1F1F27; --ink:#F2EFE6; --blue:#7FB3FF;
+    --yellow:#FFD029; --gray:#A7A499; --ok:#7CF29C;
+    --shadow:8px 8px 0 #000;
+    --shadow-sm:5px 5px 0 #000;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--body);
+    transition:background .25s ease, color .25s ease;
+    min-height:100vh; padding:28px 18px 60px;
+  }
+  .wrap{ max-width:1120px; margin:0 auto; }
+
+  /* ---------- header ---------- */
+  header{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+  .kicker{ display:inline-block; background:var(--ink); color:var(--bg); font-family:var(--display);
+    font-size:11px; letter-spacing:.12em; padding:7px 14px; text-transform:uppercase; }
+  h1{ font-family:var(--display); font-size:clamp(28px,4.6vw,46px); line-height:1.02;
+    text-transform:uppercase; margin:14px 0 6px; }
+  h1 .hl{ background:var(--yellow); color:#141414; padding:0 12px; border:3px solid #141414;
+    display:inline-block; box-shadow:var(--shadow-sm); }
+  .tagline{ font-family:var(--mono); color:var(--gray); font-size:13px; }
+  .dark-toggle{ cursor:pointer; border:3px solid var(--ink); background:var(--paper); color:var(--ink);
+    font-family:var(--display); font-size:12px; padding:12px 18px; box-shadow:var(--shadow-sm);
+    transition:transform .12s, box-shadow .12s; }
+  .dark-toggle:hover{ transform:translate(-2px,-2px); box-shadow:7px 7px 0 #141414; }
+  body.dark .dark-toggle:hover{ box-shadow:7px 7px 0 #000; }
+
+  /* ---------- hero demo ---------- */
+  .hero{ margin:30px 0 34px; }
+  .browser{ background:var(--paper); border:4px solid var(--ink); box-shadow:var(--shadow);
+    border-radius:14px; overflow:hidden; transition:background .25s; }
+  .chrome{ display:flex; align-items:center; gap:14px; background:var(--ink); padding:10px 16px; }
+  .dots{ display:flex; gap:7px; }
+  .dot{ width:13px; height:13px; border-radius:50%; }
+  .dot.y{ background:var(--yellow); } .dot.b{ background:var(--blue); } .dot.c{ background:#FBF3E4; }
+  .addr{ flex:1; max-width:420px; background:#FBF3E4; color:#141414; border-radius:999px;
+    font-family:var(--mono); font-size:12px; padding:5px 16px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .stage{ padding:44px 20px 36px; text-align:center; transition:background .3s; }
+  .stage h2{ font-family:var(--display); font-size:clamp(34px,6vw,60px); letter-spacing:-.01em; }
+  .stage p{ font-family:var(--mono); font-size:13px; color:var(--gray); margin:10px 0 26px; }
+  .btn{ cursor:pointer; font-family:var(--display); font-size:17px; text-transform:uppercase;
+    background:var(--yellow); color:#141414; border:4px solid #141414; padding:15px 34px;
+    box-shadow:6px 6px 0 #141414; transition:transform .1s, box-shadow .1s; }
+  .btn:hover{ transform:translate(-2px,-2px); box-shadow:9px 9px 0 #141414; }
+  .btn:active{ transform:translate(3px,3px); box-shadow:2px 2px 0 #141414; }
+  .btn.secondary{ background:var(--blue); color:#FBF3E4; border-color:#141414; }
+  .stage-actions{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+  .counter{ margin-top:20px; font-family:var(--mono); font-size:12px; color:var(--gray); }
+  .counter b{ background:var(--ink); color:var(--bg); padding:2px 10px; border-radius:4px; }
+
+  /* ---------- demo cards grid ---------- */
+  .grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:26px; }
+  @media (max-width:880px){ .grid{ grid-template-columns:1fr; } }
+  .card{ background:var(--paper); border:4px solid var(--ink); box-shadow:var(--shadow);
+    padding:22px 22px 18px; display:flex; flex-direction:column; transition:background .25s; }
+  .card-head{ display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+  .badge{ min-width:52px; height:52px; display:grid; place-items:center; background:var(--blue);
+    color:#FBF3E4; font-family:var(--display); font-size:11px; border:3px solid var(--ink);
+    padding:0 6px; text-align:center; }
+  .card h3{ font-family:var(--display); font-size:17px; text-transform:uppercase; line-height:1.15; }
+  .card .trick{ font-family:var(--mono); font-size:10.5px; color:var(--gray);
+    border-top:2px solid var(--ink); padding-top:10px; margin-top:auto; }
+  .card .trick code{ background:var(--yellow); color:#141414; padding:1px 6px; border:1px solid #141414; }
+
+  /* form */
+  label{ display:block; font-family:var(--mono); font-size:11px; text-transform:uppercase;
+    letter-spacing:.08em; margin:12px 0 5px; color:var(--gray); }
+  input[type=text],input[type=email]{ width:100%; border:3px solid var(--ink); background:var(--bg);
+    color:var(--ink); padding:10px 12px; font-family:var(--body); font-size:14px; outline:none; }
+  input:focus{ box-shadow:4px 4px 0 var(--blue); }
+  .err{ display:none; font-family:var(--mono); font-size:11px; color:#C41E1E; margin-top:4px; }
+  body.dark .err{ color:#FF8A8A; }
+  .err.show{ display:block; }
+  .ok-banner{ display:none; margin-top:12px; background:#D9F7DF; border:3px solid var(--ok);
+    color:#0B7A2E; font-family:var(--mono); font-size:12px; padding:10px 12px; }
+  body.dark .ok-banner{ background:#12351E; color:#7CF29C; border-color:#7CF29C; }
+  .ok-banner.show{ display:block; }
+  .mini-btn{ cursor:pointer; margin-top:14px; align-self:flex-start; background:var(--ink); color:var(--bg);
+    border:3px solid var(--ink); font-family:var(--display); font-size:12px; padding:10px 22px; letter-spacing:.06em; }
+  .mini-btn:hover{ background:var(--blue); color:#fff; border-color:var(--ink); }
+
+  /* cart */
+  .cart-item{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+    border:2px solid var(--ink); padding:8px 12px; margin-top:10px; background:var(--bg); }
+  .cart-item .name{ font-weight:700; font-size:13px; }
+  .cart-item .price{ font-family:var(--mono); font-size:11px; color:var(--gray); }
+  .qty{ display:flex; align-items:center; gap:8px; }
+  .qty button{ width:26px; height:26px; border:2px solid var(--ink); background:var(--yellow);
+    font-family:var(--display); font-size:13px; cursor:pointer; line-height:1; color:#141414; }
+  .qty span{ font-family:var(--mono); font-weight:700; min-width:18px; text-align:center; }
+  .total-bar{ display:flex; justify-content:space-between; align-items:center; margin-top:14px;
+    background:var(--ink); color:var(--yellow); font-family:var(--display); padding:12px 16px; font-size:17px; }
+
+  /* todo */
+  .todo-input{ display:flex; gap:10px; margin-top:12px; }
+  .todo-input input{ flex:1; }
+  .todo-input button{ background:var(--blue); color:#FBF3E4; border:3px solid var(--ink);
+    font-family:var(--display); font-size:16px; width:48px; cursor:pointer; }
+  ul.todos{ list-style:none; margin-top:12px; }
+  .todo{ display:flex; align-items:center; gap:10px; border:2px solid var(--ink);
+    padding:8px 10px; margin-top:8px; background:var(--bg); }
+  .todo .box{ width:20px; height:20px; border:2px solid var(--ink); background:transparent;
+    cursor:pointer; display:grid; place-items:center; font-size:13px; color:transparent; flex:none; }
+  .todo.done .box{ background:var(--blue); color:#fff; border-color:var(--ink); }
+  .todo .txt{ flex:1; font-size:14px; font-weight:600; }
+  .todo.done .txt{ text-decoration:line-through; color:var(--gray); }
+  .todo .del{ background:transparent; border:none; font-family:var(--mono); font-size:17px;
+    color:#C41E1E; cursor:pointer; font-weight:700; }
+  body.dark .todo .del{ color:#FF8A8A; }
+  .todo-empty{ font-family:var(--mono); font-size:11px; color:var(--gray); text-align:center;
+    padding:14px 0 4px; }
+  .todo-foot{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px;
+    color:var(--gray); margin-top:12px; }
+
+  footer{ margin-top:44px; border-top:3px solid var(--ink); padding-top:16px;
+    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    font-family:var(--mono); font-size:11px; color:var(--gray); }
+  footer b{ color:var(--blue); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <span class="kicker">Live Demo · Slide 07</span>
+      <h1>JavaScript,<br><span class="hl">Touching the Page</span></h1>
+      <p class="tagline">// every button below is one DOM manipulation, running for real</p>
+    </div>
+    <button class="dark-toggle" id="darkToggle" aria-pressed="false">◑ TOGGLE DARK MODE</button>
+  </header>
+
+  <!-- HERO: the slide-7 demo, for real -->
+  <section class="hero" aria-label="Main demonstration">
+    <div class="browser">
+      <div class="chrome">
+        <div class="dots"><span class="dot y"></span><span class="dot b"></span><span class="dot c"></span></div>
+        <div class="addr">quantum.dev/demo</div>
+      </div>
+      <div class="stage" id="stage">
+        <h2 id="demoTitle">Hello World!</h2>
+        <p id="demoSub">Nothing has happened yet. Click a button — the DOM is watching.</p>
+        <div class="stage-actions">
+          <button class="btn" id="changeTextBtn">Change Text</button>
+          <button class="btn secondary" id="paintBtn">Paint Background</button>
+        </div>
+        <p class="counter">DOM edits made: <b id="editCounter">0</b></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+
+    <!-- 1 · FORMS -->
+    <section class="card" aria-label="Interactive form demo">
+      <div class="card-head">
+        <div class="badge">01<br>FORM</div>
+        <h3>Interactive<br>Form Validation</h3>
+      </div>
+      <form id="demoForm" novalidate>
+        <label for="fName">Name</label>
+        <input type="text" id="fName" placeholder="Lokesh" autocomplete="off">
+        <p class="err" id="errName">✗ Please enter at least 2 characters.</p>
+        <label for="fEmail">College email</label>
+        <input type="email" id="fEmail" placeholder="lokesh@quantumuniversity.edu.in" autocomplete="off">
+        <p class="err" id="errEmail">✗ That doesn’t look like a valid email.</p>
+        <button type="submit" class="mini-btn">VALIDATE &amp; SUBMIT</button>
+        <div class="ok-banner" id="formOk">✓ Form submitted! The DOM showed you these messages — no page reload.</div>
+      </form>
+      <p class="trick">the trick → <code>classList.add('show')</code> + <code>innerText</code> on error nodes</p>
+    </section>
+
+    <!-- 2 · DARK MODE -->
+    <section class="card" aria-label="Dark mode demo">
+      <div class="card-head">
+        <div class="badge">02<br>THEME</div>
+        <h3>Dark Mode<br>in One Click</h3>
+      </div>
+      <p style="font-size:14px;line-height:1.55;margin:10px 0 6px;">
+        A single class on <code style="background:var(--yellow);color:#141414;padding:0 6px;border:1px solid #141414;font-family:var(--mono)">&lt;body&gt;</code>
+        flips every CSS variable on this page — background, surfaces, shadows and accent text.
+      </p>
+      <p style="font-size:14px;line-height:1.55;color:var(--gray)">
+        That is theming in production: GitHub, YouTube, X — they all swap a class or a data-attribute, not the stylesheet.
+      </p>
+      <button class="mini-btn" id="darkToggle2">◑ FLIP THE LIGHTS</button>
+      <p class="trick">the trick → <code>document.body.classList.toggle('dark')</code></p>
+    </section>
+
+    <!-- 3 · CART -->
+    <section class="card" aria-label="Shopping cart demo">
+      <div class="card-head">
+        <div class="badge">03<br>CART</div>
+        <h3>Shopping Cart<br>Totals</h3>
+      </div>
+      <div id="cartList"></div>
+      <div class="total-bar"><span>TOTAL</span><span id="cartTotal">₹0</span></div>
+      <p class="trick">the trick → state array + <code>innerText</code> re-render on every click</p>
+    </section>
+
+    <!-- 4 · TO-DO -->
+    <section class="card" aria-label="To-do list demo">
+      <div class="card-head">
+        <div class="badge">04<br>TASKS</div>
+        <h3>To-Do List<br>(Add · Tick · Delete)</h3>
+      </div>
+      <form class="todo-input" id="todoForm">
+        <input type="text" id="todoInput" placeholder="Revise DOM methods…" autocomplete="off" maxlength="80">
+        <button type="submit" aria-label="Add task">+</button>
+      </form>
+      <ul class="todos" id="todoList"></ul>
+      <p class="todo-empty" id="todoEmpty">Nothing here yet. Add your first task ↑</p>
+      <div class="todo-foot"><span><b id="todoLeft">0</b> left</span><span><b id="todoDone">0</b> done</span></div>
+      <p class="trick">the trick → <code>createElement</code> + <code>appendChild</code> + <code>remove()</code></p>
+    </section>
+
+  </div>
+
+  <footer>
+    <span>PRESENTED BY <b>LOKESH</b> · CSE (CORE) · QUANTUM UNIVERSITY</span>
+    <span>SUBMITTED TO <b>MR. MUKESH KUMAR TIWARI</b></span>
+  </footer>
+</div>
+
+<script>
+/* =====================================================
+   EVERYTHING BELOW IS THE PRESENTATION, LIVE.
+   1. hero: text + background swap
+   2. form validation, 3. dark mode, 4. cart, 5. to-do
+   ===================================================== */
+
+/* ---------- HERO: change text & paint background ---------- */
+const title   = document.getElementById('demoTitle');
+const sub     = document.getElementById('demoSub');
+const stage   = document.getElementById('stage');
+const counter = document.getElementById('editCounter');
+let edits = 0, swapped = false;
+const bump = () => { edits++; counter.innerText = edits; };
+
+document.getElementById('changeTextBtn').addEventListener('click', () => {
+  swapped = !swapped;                                   // the exact line from Slide 7…
+  title.innerText  = swapped ? 'Welcome to JavaScript!' : 'Hello World!';
+  sub.innerText    = swapped ? 'innerText just rewrote this heading. No reload happened.'
+                             : 'Nothing has happened yet. Click a button — the DOM is watching.';
+  bump();
+});
+
+const palettes = [
+  { bg: 'transparent', fg: 'inherit', label: 'the default sheet' },
+  { bg: '#FFD029',     fg: '#141414', label: 'electric yellow' },
+  { bg: '#0037FF',     fg: '#FBF3E4', label: 'electric blue' },
+  { bg: '#141414',     fg: '#FFD029', label: 'midnight terminal' },
+];
+let paint = 0;
+document.getElementById('paintBtn').addEventListener('click', () => {
+  paint = (paint + 1) % palettes.length;                // …and its background twin
+  const p = palettes[paint];
+  stage.style.background = p.bg;
+  title.style.color = p.fg;
+  sub.style.color   = p.fg === 'inherit' ? '' : p.fg;
+  sub.innerText = 'style.background flipped to: ' + p.label;
+  bump();
+});
+
+/* ---------- DARK MODE (header button + card button) ---------- */
+const root = document.body;
+const darkBtns = [document.getElementById('darkToggle'), document.getElementById('darkToggle2')];
+function flipDark(){
+  root.classList.toggle('dark');
+  const on = root.classList.contains('dark');
+  darkBtns[0].setAttribute('aria-pressed', on);
+  darkBtns[0].innerText = on ? '◑ TOGGLE LIGHT MODE' : '◑ TOGGLE DARK MODE';
+}
+darkBtns.forEach(b => b.addEventListener('click', flipDark));
+
+/* ---------- FORM VALIDATION ---------- */
+const form  = document.getElementById('demoForm');
+const fName = document.getElementById('fName');
+const fEmail= document.getElementById('fEmail');
+const errN  = document.getElementById('errName');
+const errE  = document.getElementById('errEmail');
+const okBan = document.getElementById('formOk');
+const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function show(el, on){ el.classList.toggle('show', on); }
+fName.addEventListener('input', () => show(errN, fName.value.trim().length > 0 && fName.value.trim().length < 2));
+fEmail.addEventListener('input', () => show(errE, fEmail.value.trim() !== '' && !emailRe.test(fEmail.value.trim())));
+
+form.addEventListener('submit', e => {
+  e.preventDefault();                                   // stop the reload — that's the whole point
+  const badName  = fName.value.trim().length < 2;
+  const badEmail = !emailRe.test(fEmail.value.trim());
+  show(errN, badName); show(errE, badEmail);
+  okBan.classList.toggle('show', !badName && !badEmail);
+  if (!badName && !badEmail) form.querySelector('button[type=submit]').innerText = 'SUBMITTED ✓';
+});
+
+/* ---------- SHOPPING CART ---------- */
+const cart = [
+  { name: 'USB-C Cable (1m)',   price: 199, qty: 1 },
+  { name: 'Notebook — Dotted',  price: 120, qty: 2 },
+  { name: 'Mechanical Pencil',  price: 85,  qty: 0 },
+];
+const cartList  = document.getElementById('cartList');
+const cartTotal = document.getElementById('cartTotal');
+const inr = n => '₹' + n.toLocaleString('en-IN');
+
+function renderCart(){
+  cartList.innerHTML = '';                              // wipe & rebuild: simplest honest render
+  let total = 0;
+  cart.forEach((item, i) => {
+    total += item.price * item.qty;
+    const row = document.createElement('div');
+    row.className = 'cart-item';
+    row.innerHTML = `
+      <span><span class="name">${item.name}</span><br>
+      <span class="price">${inr(item.price)} each</span></span>
+      <span class="qty">
+        <button data-act="dec" data-i="${i}" aria-label="Decrease">−</button>
+        <span>${item.qty}</span>
+        <button data-act="inc" data-i="${i}" aria-label="Increase">+</button>
+      </span>`;
+    cartList.appendChild(row);
+  });
+  cartTotal.innerText = inr(total);
+}
+cartList.addEventListener('click', e => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const item = cart[+btn.dataset.i];
+  item.qty = btn.dataset.act === 'inc' ? item.qty + 1 : Math.max(0, item.qty - 1);
+  renderCart();
+});
+renderCart();
+
+/* ---------- TO-DO LIST ---------- */
+const todoForm  = document.getElementById('todoForm');
+const todoInput = document.getElementById('todoInput');
+const todoList  = document.getElementById('todoList');
+const todoEmpty = document.getElementById('todoEmpty');
+const todoLeft  = document.getElementById('todoLeft');
+const todoDone  = document.getElementById('todoDone');
+
+function refreshTodoMeta(){
+  const all  = todoList.querySelectorAll('.todo');
+  const done = todoList.querySelectorAll('.todo.done');
+  todoEmpty.style.display = all.length ? 'none' : 'block';
+  todoLeft.innerText = all.length - done.length;
+  todoDone.innerText = done.length;
+}
+function addTodo(text){
+  const li = document.createElement('li');              // createElement, live
+  li.className = 'todo';
+  li.innerHTML = `<button class="box" aria-label="Toggle done">✓</button>
+                  <span class="txt"></span>
+                  <button class="del" aria-label="Delete task">×</button>`;
+  li.querySelector('.txt').innerText = text;            // innerText, not HTML: no injection
+  todoList.appendChild(li);                             // appendChild, live
+  refreshTodoMeta();
+}
+todoForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const v = todoInput.value.trim();
+  if (!v) return;
+  addTodo(v);
+  todoInput.value = '';
+  todoInput.focus();
+});
+todoList.addEventListener('click', e => {
+  const li = e.target.closest('.todo');
+  if (!li) return;
+  if (e.target.closest('.box')) li.classList.toggle('done');
+  if (e.target.closest('.del')) li.remove();            // remove(), live
+  refreshTodoMeta();
+});
+['Revise object methods (dot vs bracket)', 'Build a to-do app this weekend'].forEach(addTodo);
+</script>
+</body>
+</html>
